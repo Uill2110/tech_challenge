@@ -1,0 +1,26 @@
+version: "2"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GITHUB_TOKEN: abc123
+    container_name: <nome_do_bot>
+    command: python -u ./scheduller.py
+    restart: unless-stopped
+    networks:
+      network:
+    volumes:
+      - /var/docker_volumes/<nome_do_bot>/output :/app/output
+      - /var/docker_volumes/<nome_do_bot>/logs :/app/logs
+    environment:
+      PYTHONUNBUFFERED: 1
+      MODE: PRD
+    pull_policy: build 
+
+networks:
+  network:
+      external:
+        name: connect
