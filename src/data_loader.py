@@ -1,42 +1,43 @@
 import pandas as pd
-from sklearn.datasets import load_breast_cancer
 
 class DataLoader:
     """
-    Handles loading of medical datasets and provides initial inspection.
+    Carrega os dados médicos para análise exploratória.
     """
     def __init__(self):
         self.data = None
         self.target_name = None
         self.feature_names = None
 
-    def load_breast_cancer_data(self):
+    def load_dataset(self, filepath):
         """
-        Loads the Breast Cancer Wisconsin (Diagnostic) dataset from scikit-learn.
+        Carrega informacoes do dataset passado como parametro.
         """
-        data = load_breast_cancer(as_frame=True)
-        self.data = data.frame
-        self.target_name = data.target_names[1] # 'malignant' is 1, 'benign' is 0
-        self.feature_names = data.feature_names
-        print(f"Dataset loaded. Shape: {self.data.shape}")
-        print(f"Target variable: '{data.target_names[0]}' (0) and '{data.target_names[1]}' (1)")
+        # Importando a base de dados
+        dataset = pd.read_csv(filepath)
+        self.data = dataset
+        self.target_name = 'Outcome'
+        self.feature_names = dataset.columns[:-1]
+        print(f"Dataset carregado. Shape: {self.data.shape}")
+        print(f"Variável target: '{self.target_name}' (1) e 'Negativo para diabetes' (0)")
         return self.data
 
     def get_info(self):
         """
-        Prints basic information about the loaded dataset.
+        Mostra informações básicas sobre o dataset carregado.
         """
         if self.data is not None:
-            print("\nDataset Info:")
+            print("\nInformações sobre o Dataset:")
             self.data.info()
-            print("\nFirst 5 rows:")
+            print("\nPrimeiras 5 linhas:")
             print(self.data.head())
-            print("\nDescriptive Statistics:")
+            print("\nDescrição estatística:")
             print(self.data.describe())
         else:
-            print("No data loaded yet.")
+            print("Dataset não carregado.")
 
 if __name__ == "__main__":
+    filepath = r"F:\Projetos_Pessoais\fase1\content\sample_data\diabetes.csv"
     loader = DataLoader()
-    df = loader.load_breast_cancer_data()
+    df = loader.load_dataset(filepath)
     loader.get_info()

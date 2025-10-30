@@ -14,5 +14,5 @@ This project implements an initial AI-powered system to assist in medical diagno
 
 ### 1. Clone the Repository
 ```bash
-git clone <your-repo-link>
+git clone https://github.com/Uill2110/tech_challenge
 cd tech_challenge_fase1
