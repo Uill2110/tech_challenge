@@ -1,147 +1,128 @@
 import pandas as pd
 import numpy as np
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
 import matplotlib.pyplot as plt
 import seaborn as sns
-import shap # For model interpretability
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, classification_report
+import shap
 
 class ModelEvaluator:
     """
-    Evaluates trained models and provides interpretability.
+    Avalia modelos de classificação, gera visualizações e fornece insights de interpretabilidade.
     """
     def __init__(self, feature_names):
         self.feature_names = feature_names
+        self.evaluation_results = {}
 
-    def evaluate_model(self, model, X_test, y_test, model_name="Model"):
+    def evaluate_models(self, models, X_test, y_test):
         """
-        Evaluates a single model and prints key metrics.
+        Avalia um dicionário de modelos e armazena os resultados.
         """
-        y_pred = model.predict(X_test)
+        for name, model in models.items():
+            print(f"\n--- Avaliando: {name} ---")
+            y_pred = model.predict(X_test)
+            y_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, "predict_proba") else None
 
-        print(f"\n--- Evaluation for {model_name} ---")
-        print(f"Accuracy: {accuracy_score(y_test, y_pred):.4f}")
-        print(f"Precision: {precision_score(y_test, y_pred):.4f}")
-        print(f"Recall: {recall_score(y_test, y_pred):.4f}")
-        print(f"F1-Score: {f1_score(y_test, y_pred):.4f}")
-        print("\nClassification Report:")
-        print(classification_report(y_test, y_pred))
+            metrics = {
+                'Accuracy': accuracy_score(y_test, y_pred),
+                'Precision': precision_score(y_test, y_pred),
+                'Recall': recall_score(y_test, y_pred),
+                'F1-Score': f1_score(y_test, y_pred),
+                'ROC-AUC': roc_auc_score(y_test, y_proba) if y_proba is not None else 'N/A'
+            }
+            
+            self.evaluation_results[name] = metrics
 
-        # Confusion Matrix
-        cm = confusion_matrix(y_test, y_pred)
+            print(pd.DataFrame([metrics]))
+            print("\nRelatório de Classificação:")
+            print(classification_report(y_test, y_pred))
+
+            # Matriz de Confusão
+            self.plot_confusion_matrix(y_test, y_pred, name)
+        
+        return self.evaluation_results
+
+    def plot_confusion_matrix(self, y_true, y_pred, model_name):
+        cm = confusion_matrix(y_true, y_pred)
         plt.figure(figsize=(6, 5))
         sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
-                    xticklabels=['Benign (0)', 'Malignant (1)'],
-                    yticklabels=['Benign (0)', 'Malignant (1)'])
-        plt.title(f'Confusion Matrix for {model_name}')
-        plt.ylabel('Actual Label')
-        plt.xlabel('Predicted Label')
+                    xticklabels=['Negativo', 'Positivo'], yticklabels=['Negativo', 'Positivo'])
+        plt.title(f'Matriz de Confusão para {model_name}')
+        plt.ylabel('Rótulo Verdadeiro')
+        plt.xlabel('Rótulo Previsto')
         plt.show()
 
-        # Critical Discussion on Metrics:
-        print("\n--- Critical Discussion on Metrics ---")
-        print(f"For breast cancer diagnosis, 'Recall' is often a critical metric.")
-        print(f"A high recall ensures that we minimize 'False Negatives' (missing actual cancer cases),")
-        print(f"which is crucial even if it means a slightly higher rate of 'False Positives' (benign cases flagged as malignant),")
-        print(f"as false positives can be clarified with further tests, whereas false negatives can be life-threatening.")
-
-
-    def plot_feature_importance(self, model, model_name="Model"):
+    def plot_feature_importance(self, model, model_name):
         """
-        Plots feature importance for models that support it (e.g., Decision Trees, Logistic Regression coefficients).
+        Plota a importância das features para modelos que a suportam.
         """
         if hasattr(model, 'feature_importances_'):
             importances = model.feature_importances_
             indices = np.argsort(importances)[::-1]
-            plt.figure(figsize=(10, 6))
-            plt.title(f"Feature Importance for {model_name}")
-            sns.barplot(x=importances[indices], y=[self.feature_names[i] for i in indices])
-            plt.xlabel("Relative Importance")
-            plt.ylabel("Feature Name")
-            plt.tight_layout()
-            plt.show()
+            title = f"Importância das Features para {model_name}"
         elif hasattr(model, 'coef_'):
-            # For Logistic Regression, coefficients can indicate importance
-            coef = model.coef_[0] # Assuming binary classification
-            feature_coef = pd.Series(coef, index=self.feature_names)
-            feature_coef = feature_coef.reindex(feature_coef.abs().sort_values(ascending=False).index)
-
-            plt.figure(figsize=(10, 6))
-            feature_coef.plot(kind='barh', color=(feature_coef > 0).map({True: 'skyblue', False: 'salmon'}))
-            plt.title(f"Feature Coefficients (Importance) for {model_name}")
-            plt.xlabel("Coefficient Value (Magnitude indicates importance, sign indicates direction)")
-            plt.ylabel("Feature Name")
-            plt.tight_layout()
-            plt.show()
+            importances = model.coef_[0]
+            indices = np.argsort(np.abs(importances))[::-1]
+            title = f"Coeficientes das Features para {model_name}"
         else:
-            print(f"Feature importance not directly available for {model_name}.")
+            print(f"Importância de features não disponível para {model_name}.")
+            return
 
-    def plot_shap_values(self, model, X_test_processed, original_X_test, model_name="Model"):
+        plt.figure(figsize=(10, 8))
+        plt.title(title)
+        sns.barplot(x=importances[indices], y=np.array(self.feature_names)[indices])
+        plt.xlabel("Importância Relativa / Valor do Coeficiente")
+        plt.ylabel("Feature")
+        plt.tight_layout()
+        plt.show()
+
+    def plot_shap_summary(self, model, X_test_processed, model_name):
         """
-        Uses SHAP to explain individual predictions and overall feature importance.
+        Gera um gráfico de resumo SHAP para explicar a importância geral das features.
         """
-        print(f"\n--- SHAP Explanations for {model_name} ---")
+        print(f"\n--- Análise SHAP para {model_name} ---")
         try:
-            # SHAP Explainer
             explainer = shap.Explainer(model, X_test_processed)
             shap_values = explainer(X_test_processed)
 
-            # Summary plot (overall feature importance)
-            print("Generating SHAP summary plot...")
+            print("Gerando gráfico de resumo SHAP...")
             shap.summary_plot(shap_values, X_test_processed, feature_names=self.feature_names, show=False)
-            plt.title(f"SHAP Summary Plot for {model_name}")
+            plt.title(f"Resumo SHAP para {model_name}")
             plt.tight_layout()
             plt.show()
-
-            # Example individual prediction explanation
-            print("Generating SHAP force plot for an example prediction...")
-            sample_idx = 0 # Explain the first sample in the test set
-            print(f"Explaining prediction for sample {sample_idx}. Actual: {original_X_test.iloc[sample_idx]['target']},"
-                  f" Predicted: {model.predict(X_test_processed[sample_idx].reshape(1, -1))[0]}")
-            shap.force_plot(explainer.expected_value, shap_values[sample_idx], X_test_processed[sample_idx],
-                            feature_names=self.feature_names, show=False, matplotlib=True)
-            plt.title(f"SHAP Force Plot for Sample {sample_idx} ({model_name})")
-            plt.tight_layout()
-            plt.show()
-
         except Exception as e:
-            print(f"Could not generate SHAP plots for {model_name}: {e}")
-            print("Please ensure your model and data are compatible with SHAP.")
+            print(f"Não foi possível gerar o gráfico SHAP para {model_name}: {e}")
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     from data_loader import DataLoader
     from preprocessor import DataPreprocessor
     from models import ModelTrainer
-    from sklearn.datasets import load_breast_cancer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.tree import DecisionTreeClassifier
 
-    # Load data and get original feature names
-    data = load_breast_cancer(as_frame=True)
-    original_feature_names = data.feature_names
-    df = data.frame
-
-    # Preprocess data
+    # 1. Carregar e pré-processar dados
+    loader = DataLoader()
+    df = loader.load_sample_data('breast_cancer')
     preprocessor = DataPreprocessor()
     X_train, X_val, X_test, y_train, y_val, y_test = preprocessor.split_data(df, target_column='target')
-    preprocessor_pipeline = preprocessor.create_preprocessing_pipeline(X_train)
-    X_train_p, X_val_p, X_test_p = preprocessor.preprocess(X_train, X_val, X_test)
+    preprocessor.create_preprocessing_pipeline(X_train_df=X_train)
+    X_train_p, X_val_p, X_test_p = preprocessor.preprocess_data(X_train, X_val, X_test)
 
-    # Train models
+    # 2. Treinar modelos
+    models_to_train = {
+        'Logistic Regression': LogisticRegression(random_state=42, solver='liblinear'),
+        'Decision Tree': DecisionTreeClassifier(random_state=42, max_depth=5)
+    }
     trainer = ModelTrainer()
-    lr_model = trainer.train_logistic_regression(X_train_p, y_train)
-    dt_model = trainer.train_decision_tree(X_train_p, y_train)
+    trained_models = trainer.train_models(models_to_train, X_train_p, y_train)
 
-    # Combine X_test and y_test for easier SHAP access to original values
-    original_X_test_with_target = X_test.copy()
-    original_X_test_with_target['target'] = y_test
+    # 3. Avaliar modelos
+    evaluator = ModelEvaluator(feature_names=preprocessor.original_feature_names)
+    evaluation_summary = evaluator.evaluate_models(trained_models, X_test_p, y_test)
 
-    # Evaluate models
-    evaluator = ModelEvaluator(feature_names=original_feature_names)
+    print("\n--- Resumo da Avaliação ---")
+    print(pd.DataFrame(evaluation_summary).T)
 
-    # Logistic Regression Evaluation
-    evaluator.evaluate_model(lr_model, X_test_p, y_test, model_name="Logistic Regression")
-    evaluator.plot_feature_importance(lr_model, model_name="Logistic Regression")
-    # evaluator.plot_shap_values(lr_model, X_test_p, original_X_test_with_target, model_name="Logistic Regression") # SHAP for LR can be complex with pipeline steps
-
-    # Decision Tree Evaluation
-    evaluator.evaluate_model(dt_model, X_test_p, y_test, model_name="Decision Tree")
-    evaluator.plot_feature_importance(dt_model, model_name="Decision Tree")
-    evaluator.plot_shap_values(dt_model, X_test_p, original_X_test_with_target, model_name="Decision Tree")
+    # 4. Plotar importância das features e SHAP
+    for name, model in trained_models.items():
+        evaluator.plot_feature_importance(model, name)
+        evaluator.plot_shap_summary(model, X_test_p, name)

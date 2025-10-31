@@ -1,57 +1,77 @@
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.pipeline import Pipeline
+from sklearn.base import is_classifier
 
 class ModelTrainer:
     """
-    Trains various classification models.
+    Treina uma coleção de modelos de classificação a partir de um dicionário.
     """
-    def __init__(self, random_state=42):
-        self.random_state = random_state
-        self.models = {}
+    def __init__(self):
+        self.trained_models = {}
 
-    def train_logistic_regression(self, X_train, y_train):
+    def train_models(self, models_dict, X_train, y_train):
         """
-        Trains a Logistic Regression model.
-        """
-        print("Training Logistic Regression model...")
-        model = LogisticRegression(random_state=self.random_state, solver='liblinear')
-        model.fit(X_train, y_train)
-        self.models['LogisticRegression'] = model
-        print("Logistic Regression trained.")
-        return model
+        Treina uma série de modelos de classificação.
 
-    def train_decision_tree(self, X_train, y_train):
-        """
-        Trains a Decision Tree Classifier model.
-        """
-        print("Training Decision Tree model...")
-        model = DecisionTreeClassifier(random_state=self.random_state, max_depth=5) # Limiting depth for interpretability
-        model.fit(X_train, y_train)
-        self.models['DecisionTree'] = model
-        print("Decision Tree trained.")
-        return model
+        Args:
+            models_dict (dict): Um dicionário onde as chaves são os nomes dos modelos
+                              e os valores são os objetos de modelo (ex: LogisticRegression()).
+            X_train: Os dados de treino (features).
+            y_train: Os rótulos de treino (target).
 
-    def get_models(self):
+        Returns:
+            dict: Um dicionário contendo os modelos treinados.
         """
-        Returns all trained models.
-        """
-        return self.models
+        for name, model in models_dict.items():
+            if not is_classifier(model):
+                print(f"Aviso: O modelo '{name}' pode não ser um classificador do Scikit-learn. Pulando.")
+                continue
+            
+            print(f"Treinando o modelo: {name}...")
+            try:
+                model.fit(X_train, y_train)
+                self.trained_models[name] = model
+                print(f"{name} treinado com sucesso.")
+            except Exception as e:
+                print(f"Falha ao treinar o modelo {name}. Erro: {e}")
+        
+        return self.trained_models
 
-if __name__ == "__main__":
-    # This block assumes processed data is available
+    def get_trained_models(self):
+        """
+        Retorna o dicionário de modelos que foram treinados.
+        """
+        return self.trained_models
+
+if __name__ == '__main__':
     from data_loader import DataLoader
     from preprocessor import DataPreprocessor
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.ensemble import RandomForestClassifier
 
+    # 1. Carregar dados
     loader = DataLoader()
-    df = loader.load_breast_cancer_data()
+    df = loader.load_sample_data('breast_cancer')
+
+    # 2. Pré-processar dados
     preprocessor = DataPreprocessor()
-    X_train, _, _, y_train, _, _ = preprocessor.split_data(df, target_column='target')
-    preprocessor.create_preprocessing_pipeline(X_train)
-    X_train_p, _, _ = preprocessor.preprocess(X_train, X_train.head(1), X_train.head(1)) # Only need X_train_p here for example
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocessor.split_data(df, target_column='target')
+    preprocessor.create_preprocessing_pipeline(X_train_df=X_train)
+    X_train_p, _, _ = preprocessor.preprocess_data(X_train, X_val, X_test)
 
+    # 3. Definir os modelos a serem treinados
+    models_to_train = {
+        'Logistic Regression': LogisticRegression(random_state=42, solver='liblinear'),
+        'Decision Tree': DecisionTreeClassifier(random_state=42, max_depth=5),
+        'Random Forest': RandomForestClassifier(random_state=42, n_estimators=100)
+    }
+
+    # 4. Treinar os modelos
     trainer = ModelTrainer()
-    lr_model = trainer.train_logistic_regression(X_train_p, y_train)
-    dt_model = trainer.train_decision_tree(X_train_p, y_train)
+    trained_classifiers = trainer.train_models(models_to_train, X_train_p, y_train)
 
-    print("\nTrained models:", trainer.get_models())
+    print("\nModelos treinados disponíveis:", list(trained_classifiers.keys()))
+
+    # Exemplo de como acessar um modelo treinado
+    if 'Logistic Regression' in trained_classifiers:
+        lr_model = trained_classifiers['Logistic Regression']
+        print("\nCoeficientes da Regressão Logística:", lr_model.coef_)
