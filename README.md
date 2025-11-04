@@ -40,7 +40,7 @@ O projeto está organizado da seguinte forma:
 
 ### 1. Clone o Repositório
 ```bash
-git clone https://github.com/seu-usuario/seu-repositorio.git
+git clone https://github.com/Uill2110/tech_challenge.git
 cd seu-repositorio
 ```
 
@@ -56,6 +56,7 @@ pip install -r requirements.txt
 ```
 
 ## Como Usar
+# Passo não obrigatório - Projeto também pode ser executado pelo próprio VsCode
 Atualmente, a lógica principal e a análise estão contidas nos Jupyter Notebooks na pasta `notebooks/`. Para executar a análise, inicie o Jupyter Lab:
 ```bash
 jupyter lab
@@ -65,9 +66,8 @@ Em seguida, navegue até a pasta `notebooks` e abra um dos notebooks.
 ## Dados
 O conjunto de dados utilizado neste projeto é o "Pima Indians Diabetes Database". Ele está localizado em `content/sample_data/` e contém os seguintes arquivos:
 - `diabetes.csv`: O conjunto de dados original.
-- `diabetes_novo.csv`: Uma versão possivelmente modificada ou estendida do conjunto de dados.
+
 
 ## Notebooks
-- **`main_analysis.ipynb`**: Notebook principal com a análise completa, incluindo exploração de dados, pré-processamento, treinamento do modelo e avaliação.
 - **`refactored-diabetes-eda.ipynb`**: Notebook focado na Análise Exploratória de Dados (EDA) refatorada.
 - **`refactored-diabetes-pipeline.ipynb`**: Notebook que implementa um pipeline de dados refatorado.
