@@ -50,11 +50,11 @@ if __name__ == '__main__':
 
     # 1. Carregar dados
     loader = DataLoader()
-    df = loader.load_sample_data('breast_cancer')
+    df = loader.load_sample_data('diabetes')
 
     # 2. Pré-processar dados
     preprocessor = DataPreprocessor()
-    X_train, X_val, X_test, y_train, y_val, y_test = preprocessor.split_data(df, target_column='target')
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocessor.split_data(df, target_column='Outcome')
     preprocessor.create_preprocessing_pipeline(X_train_df=X_train)
     X_train_p, _, _ = preprocessor.preprocess_data(X_train, X_val, X_test)
 

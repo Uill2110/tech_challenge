@@ -1,6 +1,6 @@
 
 import pandas as pd
-from sklearn.datasets import load_breast_cancer, load_diabetes
+from sklearn.datasets import load_diabetes
 
 class DataLoader:
     """
@@ -30,19 +30,17 @@ class DataLoader:
             print(f"Erro: O arquivo não foi encontrado em '{filepath}'")
             return None
 
-    def load_sample_data(self, dataset_name='breast_cancer'):
+    def load_sample_data(self, dataset_name='diabetes'):
         """
         Carrega um dataset de exemplo do Scikit-learn.
 
         Args:
-            dataset_name (str): O nome do dataset ('breast_cancer' ou 'diabetes').
+            dataset_name (str): O nome do dataset ('diabetes').
         """
-        if dataset_name == 'breast_cancer':
-            data_loader = load_breast_cancer
-        elif dataset_name == 'diabetes':
+        if dataset_name == 'diabetes':
             data_loader = load_diabetes
         else:
-            raise ValueError("Dataset de exemplo não suportado. Escolha 'breast_cancer' ou 'diabetes'.")
+            raise ValueError("Dataset de exemplo não suportado. Escolha 'diabetes'.")
 
         sample_data = data_loader()
         self.data = pd.DataFrame(data=sample_data.data, columns=sample_data.feature_names)
@@ -75,11 +73,4 @@ if __name__ == '__main__':
     if diabetes_df is not None:
         csv_loader.get_info()
 
-    print("\n" + "="*50 + "\n")
 
-    # Exemplo de uso: Carregando o dataset de exemplo 'breast_cancer'
-    print("--- Exemplo: Carregando dataset de exemplo 'breast_cancer' do Scikit-learn ---")
-    sample_loader = DataLoader()
-    cancer_df = sample_loader.load_sample_data('breast_cancer')
-    if cancer_df is not None:
-        sample_loader.get_info()

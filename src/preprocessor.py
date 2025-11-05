@@ -122,15 +122,15 @@ class DataPreprocessor:
 if __name__ == '__main__':
     from data_loader import DataLoader
 
-    # Carregando o dataset de exemplo 'breast_cancer'
+    # Carregando o dataset de exemplo 'diabetes'
     loader = DataLoader()
-    df = loader.load_sample_data('breast_cancer')
+    df = loader.load_sample_data('diabetes')
 
     # Instanciando o pré-processador
     preprocessor = DataPreprocessor()
 
     # Dividindo os dados
-    X_train, X_val, X_test, y_train, y_val, y_test = preprocessor.split_data(df, target_column='target')
+    X_train, X_val, X_test, y_train, y_val, y_test = preprocessor.split_data(df, target_column='Outcome')
 
     # Criando o pipeline (inferindo as colunas a partir do X_train)
     preprocessor.create_preprocessing_pipeline(X_train_df=X_train)
