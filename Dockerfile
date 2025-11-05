@@ -1,38 +1,32 @@
-FROM python:3.11.0-bullseye
+FROM python:3.11-bullseye
 
-ARG GITHUB_TOKEN
+# Variáveis de ambiente para melhor comportamento no container
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    TZ=America/Sao_Paulo \
+    TERM=xterm
 
-
-# Fix timezone container
-ENV TZ=America/Sao_Paulo
-ENV TERM=xterm
+# Ajuste de timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-
-# Add SQL Server ODBC Driver 17 for Debian
-# RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
-#     RUN curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list
-#     RUN apt-get update
-#     RUN ACCEPT_EULA=Y apt-get install -y msodbcsql17
-#     RUN ACCEPT_EULA=Y apt-get install -y mssql-tools
-#     RUN echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bashrc
-    
-#     # Install unixodbc for PYODBC
-#     RUN apt-get update && apt-get install -y --no-install-recommends \
-#         unixodbc-dev \
-#         unixodbc \
-#         libpq-dev 
-
-# UPDATE APT-GET
-RUN apt-get update
-
-RUN apt-get install nano -y
 
 WORKDIR /app
 
+# Instalar dependências do sistema (usadas por numpy/scipy/scikit-learn)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar apenas requirements primeiro para aproveitar cache
+COPY requirements.txt ./
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+# Copiar o restante do código
 COPY . .
 
-# Substitua "github.com" por "${GITHUB_TOKEN}@github.com" no arquivo
-RUN sed -i "s|github.com|${GITHUB_TOKEN}@github.com|g" /app/requirements.txt
+# Expor a porta do servidor
+EXPOSE 8000
 
-RUN pip install -r requirements.txt
+# Comando padrão: subir API FastAPI com Uvicorn
+CMD ["python", "-c", "import os,sys; import uvicorn; sys.path.append('/app'); uvicorn.run('main:app', host='0.0.0.0', port=int(os.getenv('PORT', '8000')), reload=False)"]

@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Environments
+.env
+.venv/
+venv/
+.env.*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs & results
+logs/
+results/
+output/
+
+# Data (opcional: comente se quiser copiar para a imagem)
+content/
+
+# VCS
+.git/
+.gitignore
+
+# OS/IDE
+.DS_Store
+.vscode/
+.qodo/
